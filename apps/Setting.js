@@ -46,6 +46,12 @@ export class setting extends plugin {
         },
         {
           /** 命令正则匹配 */
+          reg: '^[/#]?vits发音人$',
+          /** 执行方法 */
+          fnc: 'getSpeaker',
+        },
+        {
+          /** 命令正则匹配 */
           reg: '^[/#]?vits(开启|关闭)提示$',
           /** 执行方法 */
           fnc: 'setTip',
@@ -78,17 +84,9 @@ export class setting extends plugin {
         },
         {
           /** 命令正则匹配 */
-          reg: '^[/#]?vits发音人$',
+          reg: '^[/#]?vits同传发音人$',
           /** 执行方法 */
-          fnc: 'getSpeaker',
-        },
-        {
-          /** 命令正则匹配 */
-          reg: '^[/#]?vits设置原神密钥.*$',
-          /** 执行方法 */
-          fnc: 'setGenshinKey',
-          /** 主人权限 */
-          permission: 'master'
+          fnc: 'getSyncSpeaker',
         }
       ]
     })
@@ -96,8 +94,8 @@ export class setting extends plugin {
 
   async setModelType(e) {
     let config = await Config.getConfig();
-    let modelTypes = fs.readdirSync(pluginResources)
-      .filter(file => fs.statSync(path.join(pluginResources, file)).isDirectory());
+    const modelTypes = fs.readdirSync(pluginResources)
+      .filter(file => fs.statSync(path.join(pluginResources, file)).isDirectory() && file !== 'readme');
     let modelType = e.msg.replace(/^[/#]?vits设置模型/, '').trim();
 
     if (modelTypes.includes(modelType)) {
@@ -115,7 +113,7 @@ export class setting extends plugin {
     const config = await Config.getConfig();
     const modelType = config.tts_config.use_model_type;
     const modelTypes = fs.readdirSync(pluginResources)
-      .filter(file => fs.statSync(path.join(pluginResources, file)).isDirectory());
+      .filter(file => fs.statSync(path.join(pluginResources, file)).isDirectory() && file !== 'readme');
 
     const supportedModelTypes = modelTypes.map((type, index) => `${index + 1}.${type}`).join('\n');
     const msg = `当前模型类型为：${modelType}\n支持的模型类型有：\n${supportedModelTypes}`;
@@ -149,6 +147,23 @@ export class setting extends plugin {
     const msg = `当前源为：${config.tts_config.use_interface_sources}\n支持的源有：\n${supportedSources}`;
 
     e.reply(msg);
+    return true;
+  }
+
+  async getSpeaker(e) {
+    const config = await Config.getConfig();
+    const userConfig = config.tts_config
+
+    const dataPath = path.join(pluginResources, userConfig.use_model_type, userConfig.use_interface_sources + '.json');
+    const data = JSON.parse(fs.readFileSync(dataPath));
+    const speakersList = data.space.map((sp, index) => `${index + 1}.${sp.name}`).join('\n');
+
+    const msg = []
+    msg.push({ message: `当前使用的模型类型为：${userConfig.use_model_type}`})
+    msg.push({ message: `当前使用的源为：${userConfig.use_interface_sources}`})
+    msg.push({ message: `支持的发音人有：\n${speakersList}`})
+
+    e.reply(Bot.makeForwardMsg(msg));
     return true;
   }
 
@@ -259,7 +274,7 @@ export class setting extends plugin {
     const speakersData = JSON.parse(fs.readFileSync(speakersDataPath));
     const speakerName = e.msg.replace(/^[/#]?vits设置同传发音人/, '').trim();
     if (!speakerName) {
-      e.reply('发音人不存在，请发送【#vits发音人】查看支持的发音人')
+      e.reply('发音人不存在，请发送【#vits同传发音人】查看支持的发音人')
       return true
     }
     const speakerEntry = speakersData.space.find(sp => sp.name === speakerName || sp.name.includes(speakerName));
@@ -269,13 +284,13 @@ export class setting extends plugin {
       await Config.setConfig(config);
       e.reply(`同传发音人设置成功，当前发音人为：${speakerName}`);
     } else {
-      e.reply('发音人不存在，请发送【#vits发音人】查看支持的发音人');
+      e.reply('发音人不存在，请发送【#vits同传发音人】查看支持的发音人');
     }
 
     return true;
   }
 
-  async getSpeaker(e) {
+  async getSyncSpeaker(e) {
     const config = await Config.getConfig();
     const userSyncConfig = config.tts_sync_config.find(item => item.user_id == e.user_id);
 
@@ -288,25 +303,12 @@ export class setting extends plugin {
     const data = JSON.parse(fs.readFileSync(dataPath));
     const speakersList = data.space.map((sp, index) => `${index + 1}.${sp.name}`).join('\n');
 
-    const msg = `当前同传发音人为：${userSyncConfig.use_speaker}\n` +
-      `当前使用的模型类型为：${userSyncConfig.use_model_type}\n` +
-      `当前使用的源为：${userSyncConfig.use_interface_sources}\n` +
-      `支持的发音人有：\n${speakersList}`;
+    const msg = []
+    msg.push({ message: `当前使用的模型类型为：${userSyncConfig.use_model_type}`})
+    msg.push({ message: `当前使用的源为：${userSyncConfig.use_interface_sources}`})
+    msg.push({ message: `支持的发音人有：\n${speakersList}`})
 
-    e.reply(msg);
+    e.reply(Bot.makeForwardMsg(msg));
     return true;
-  }
-
-  async setGenshinKey(e) {
-    const config = await Config.getConfig();
-    const message = e.msg.replace(/^[/#]?vits设置原神密钥/, '').trim();
-    if (message) {
-      config.genshin_tts_token = message;
-      await Config.setConfig(config);
-      e.reply('原神语音合成密钥设置成功');
-    } else {
-      e.reply('请发前往\nhttps://tts.ai-hobbyist.org/#/apikey\n获取原神语音合成密钥');
-      return true;
-    }
   }
 }

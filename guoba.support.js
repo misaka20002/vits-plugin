@@ -7,20 +7,21 @@ export function supportGuoba() {
   return {
     pluginInfo: {
       name: 'vits-plugin',
-      title: 'vits-plugin',
+      title: '在线VITS插件',
       author: ['@erzaozi', '@CikeyQi'],
       authorLink: ['https://github.com/erzaozi', 'https://github.com/CikeyQi'],
       link: 'https://github.com/erzaozi/vits-plugin',
       isV3: true,
       isV2: false,
-      description: '基于Yunzai-Bot的语音合成插件',
+      showInMenu: true,
+      description: '基于 Yunzai 的在线语音合成插件',
       // 显示图标，此为个性化配置
       // 图标可在 https://icon-sets.iconify.design 这里进行搜索
-      icon: 'mdi:stove',
+      icon: 'icon-park:voice-message',
       // 图标颜色，例：#FF0000 或 rgb(255, 0, 0)
       iconColor: '#d19f56',
       // 如果想要显示成图片，也可以填写图标路径（绝对路径）
-      iconPath: path.join(pluginRoot, 'resources/icon.png'),
+      iconPath: path.join(pluginRoot, 'resources/readme/girl.png'),
     },
     configInfo: {
       schemas: [
@@ -41,7 +42,7 @@ export function supportGuoba() {
             options: [
               { label: "Bert-VITS2", value: "Bert-VITS2" },
               { label: "GPT-SoVITS", value: "GPT-SoVITS" },
-              { label: "Genshin-TTS", value: "Genshin-TTS" },
+              { label: "Fish-Audio", value: "Fish-Audio" },
             ],
           },
         },
@@ -62,6 +63,30 @@ export function supportGuoba() {
           label: "TTS 接收命令提示",
           bottomHelpMessage: "接收到命令时是否发送提示",
           component: "Switch",
+        },
+        {
+          field: "tts_config.send_base64",
+          label: "Base64 发送",
+          bottomHelpMessage: "避免网络质量不佳导致的语音无法发出",
+          component: "Switch",
+        },
+        {
+          field: "modelscope_cookie",
+          label: "Modelscope Cookie",
+          bottomHelpMessage: "用于需要登录的魔搭平台创空间验证",
+          component: "Input",
+          componentProps: {
+            placeholder: '请输入 Cookie',
+          },
+        },
+        {
+          field: "fishaudio_authorization",
+          label: "Fish-Audio Token",
+          bottomHelpMessage: "用于需要登录的Fish Audio平台",
+          component: "Input",
+          componentProps: {
+            placeholder: '请输入 Token',
+          },
         },
         {
           component: "Divider",
@@ -115,7 +140,7 @@ export function supportGuoba() {
                   options: [
                     { label: "Bert-VITS2", value: "Bert-VITS2" },
                     { label: "GPT-SoVITS", value: "GPT-SoVITS" },
-                    { label: "Genshin-TTS", value: "Genshin-TTS" },
+                    { label: "Fish-Audio", value: "Fish-Audio" },
                   ],
                 },
               },
@@ -140,23 +165,6 @@ export function supportGuoba() {
             ],
           },
         },
-        {
-          component: "Divider",
-          label: "其他 相关配置",
-          componentProps: {
-            orientation: "left",
-            plain: true,
-          },
-        },
-        {
-          field: "genshin_tts_token",
-          label: "原神语音合成密钥",
-          bottomHelpMessage: "原神语音合成密钥",
-          component: "Input",
-          componentProps: {
-            placeholder: '请输入原神语音合成密钥',
-          },
-        },
       ],
       getConfigData() {
         let config = Config.getConfig()
@@ -169,6 +177,7 @@ export function supportGuoba() {
           lodash.set(config, keyPath, value)
         }
         config = lodash.merge({}, Config.getConfig(), config)
+        config.tts_sync_config = data['tts_sync_config']
         Config.setConfig(config)
         return Result.ok({}, '保存成功~')
       },

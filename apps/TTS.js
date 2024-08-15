@@ -1,6 +1,6 @@
 import { TextToSpeech as BertVITSTextToSpeech } from '../components/Bert-VITS2.js';
 import { TextToSpeech as GPTSoVITSTextToSpeech } from '../components/GPT-SoVITS.js';
-import { TextToSpeech as GenshinTTSTextToSpeech } from '../components/Genshin-TTS.js';
+import { TextToSpeech as FishAudioTTSTextToSpeech } from '../components/Fish-Audio.js';
 import plugin from '../../../lib/plugins/plugin.js'
 import Config from '../components/Config.js'
 import { getRecord } from '../components/Record.js'
@@ -37,16 +37,20 @@ export class TTS extends plugin {
 
     if (c.use_model_type == 'GPT-SoVITS') {
       url = await GPTSoVITSTextToSpeech(role, text, c);
-    } else if (c.use_model_type == 'Genshin-TTS') {
-      url = await GenshinTTSTextToSpeech(role, text, c);
+    } else if (c.use_model_type == 'Fish-Audio') {
+      url = await FishAudioTTSTextToSpeech(role, text, c);
     } else {
       url = await BertVITSTextToSpeech(role, text, c);
     }
 
     if (!url) return e.reply('合成失败，请检查角色名和文本内容，或检查控制台报错\n  Tips：更换模型类型后请重新设置源，每个源支持的角色不同，相关列表请查看本插件README.md文档');
 
-    const base64 = await getRecord(url);
-    await e.reply(segment.record(`base64://${base64}`));
+    if (c.send_base64) {
+      const base64 = await getRecord(url);
+      await e.reply(segment.record(`base64://${base64}`));
+    } else {
+      await e.reply(segment.record(url));
+    }
 
     return true;
   }
